@@ -1,5 +1,5 @@
 # signal-crawler
-
+```
 stream-crawler/
 │
 ├── app/                         # Python main package
@@ -74,3 +74,4 @@ stream-crawler/
 ├── docker-compose.yml
 ├── requirements.txt
 └── README.md
+```
