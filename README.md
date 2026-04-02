@@ -1,6 +1,6 @@
 # signal-crawler
 ```
-stream-crawler/
+signal-crawler/
 │
 ├── app/                         # Python main package
 │   ├── __init__.py
