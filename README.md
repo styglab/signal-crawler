@@ -22,83 +22,107 @@ signal-crawler/
 ├── app/
 │   ├── config.py
 │
-│   ├── core/                        # 절대 비즈니스 로직 금지
+│   ├── core/                         # pure infra (절대 비즈니스 금지)
 │   │   ├── logger.py
 │   │   ├── utils.py
 │   │   ├── hashing.py
-│   │   └── types.py
+│   │   └── time.py
 │
-│   ├── domain/                      # 핵심: 데이터 모델 정의
-│   │   ├── document.py              # raw → processed 구조
+│   ├── domain/                       # 🔥 모든 데이터 정의
+│   │   ├── document.py
 │   │   ├── keyword.py
-│   │   └── task.py                  # queue payload schema
+│   │   ├── task.py
+│   │   └── enums.py
 │
-│   ├── queue/                       # Redis abstraction
+│   ├── queue/                        # Redis queue system
 │   │   ├── client.py
 │   │   ├── producer.py
 │   │   ├── consumer.py
+│   │   ├── schemas.py                # task payload
 │   │   └── dedup.py
 │
-│   ├── crawler/                     # 데이터 수집
+│   ├── crawler/                      # 수집 시스템
 │   │   ├── base.py
-│   │   ├── registry.py              # crawler 선택 로직
-│   │   ├── sources/
-│   │   │   ├── reddit.py
-│   │   │   ├── x.py
-│   │   │   └── web.py               # playwright/crawl4ai
-│   │   └── fetcher.py               # http / retry / rate limit
+│   │   ├── registry.py
+│   │   ├── fetcher.py                # HTTP layer
+│   │   │
+│   │   ├── middlewares/              # 🔥 안정성 핵심
+│   │   │   ├── retry.py
+│   │   │   ├── proxy.py
+│   │   │   ├── rate_limit.py
+│   │   │   └── circuit_breaker.py
+│   │   │
+│   │   └── sources/
+│   │       ├── reddit.py
+│   │       ├── x.py
+│   │       └── web.py
 │
-│   ├── pipeline/                    # 실행 엔진
-│   │   ├── engine.py                # pipeline orchestration
-│   │   ├── schema.py                # 데이터 흐름 정의
+│   ├── pipeline/                     # 🔥 데이터 처리 엔진
+│   │   ├── engine.py                 # orchestration
+│   │   ├── context.py                # 🔥 상태/로그/trace
+│   │   ├── schema.py                 # 데이터 흐름 정의
+│   │   │
 │   │   └── stages/
 │   │       ├── parse.py
 │   │       ├── clean.py
 │   │       ├── normalize.py
+│   │       ├── enrich.py             # 🔥 중요 (LLM/추가 정보)
 │   │       └── validate.py
 │
-│   ├── keyword/                     # 수익 핵심
+│   ├── keyword/                      # 🔥 수익 엔진
 │   │   ├── orchestrator.py
+│   │   │
 │   │   ├── strategies/
 │   │   │   ├── extract.py
 │   │   │   ├── expand.py
 │   │   │   ├── trending.py
 │   │   │   └── semantic.py
-│   │   ├── scorer.py
+│   │   │
+│   │   ├── ranking/                  # 🔥 핵심
+│   │   │   ├── features.py
+│   │   │   └── scorer.py
+│   │   │
 │   │   └── generator.py
 │
-│   ├── storage/                     # 저장 추상화
-│   │   ├── repository.py            # 공통 인터페이스
+│   ├── storage/                      # 저장 계층
+│   │   ├── repository.py
+│   │   │
+│   │   ├── serializers/              # 🔥 포맷 분리
+│   │   │   ├── json.py
+│   │   │   └── parquet.py
+│   │   │
 │   │   └── backends/
 │   │       ├── redis.py
 │   │       ├── sqlite.py
 │   │       ├── parquet.py
-│   │       └── s3.py                # 필수 (data-universe 대비)
+│   │       └── s3.py
 │
-│   ├── miner/                       # bittensor 연결
+│   ├── miner/                        # bittensor 인터페이스
 │   │   ├── client.py
-│   │   ├── protocol.py              # 요청/응답 정의
-│   │   └── adapter.py               # 내부 → miner 포맷 변환
+│   │   ├── protocol.py
+│   │   ├── adapter.py
+│   │   └── scorer.py                 # 🔥 validator 대응
 │
-│   ├── services/                    # orchestration layer
-│   │   ├── scheduler.py             # keyword → queue
-│   │   ├── crawl_service.py         # queue → crawler
-│   │   └── ingest_service.py        # pipeline → storage
+│   ├── services/                     # orchestration only
+│   │   ├── scheduler.py              # keyword → task 생성
+│   │   ├── crawl_service.py          # task → crawler 실행
+│   │   └── ingest_service.py         # pipeline → storage
 │
-│   ├── api/                         # validator 대응
+│   ├── api/                          # validator / 외부 대응
 │   │   ├── server.py
 │   │   ├── routes.py
 │   │   └── schemas.py
 │
-│   └── observability/               # 운영 핵심
+│   └── observability/                # 🔥 운영 필수
 │       ├── metrics.py
 │       ├── tracing.py
-│       └── logging.py
+│       ├── logging.py
+│       └── events.py                 # 🔥 수익 추적
 │
-├── workers/                         # 실행 단위 분리 (중요)
-│   ├── scheduler.py
-│   ├── crawler.py
-│   └── ingestion.py
+├── workers/                          # 실행 단위 (scale-out)
+│   ├── scheduler_worker.py
+│   ├── crawler_worker.py
+│   └── ingestion_worker.py
 │
 ├── scripts/
 │   ├── run_scheduler.py
@@ -119,7 +143,7 @@ signal-crawler/
 │   ├── api.Dockerfile
 │   └── miner.Dockerfile
 │
-├── data-universe/                   # 그대로 유지
+├── data-universe/
 │
 ├── docker-compose.yml
 ├── requirements.txt
