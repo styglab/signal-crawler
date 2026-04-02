@@ -1,4 +1,21 @@
 # signal-crawler
+
+## data flow
+```
+scheduler
+  ↓
+queue (Redis)
+  ↓
+crawler worker
+  ↓
+pipeline engine
+  ↓
+storage (S3 / parquet)
+  ↓
+miner (serve)
+```
+
+## architecture
 ```
 signal-crawler/
 │
