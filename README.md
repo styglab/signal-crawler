@@ -2,74 +2,107 @@
 ```
 signal-crawler/
 │
-├── app/                         # Python main package
-│   ├── __init__.py
+├── app/
 │   ├── config.py
 │
-│   ├── core/                    # 공통 (절대 비대해지면 안됨)
+│   ├── core/                        # 절대 비즈니스 로직 금지
 │   │   ├── logger.py
 │   │   ├── utils.py
-│   │   └── hashing.py
+│   │   ├── hashing.py
+│   │   └── types.py
 │
-│   ├── queue/                   # Redis abstraction
-│   │   ├── redis_client.py
-│   │   ├── task_queue.py
+│   ├── domain/                      # 핵심: 데이터 모델 정의
+│   │   ├── document.py              # raw → processed 구조
+│   │   ├── keyword.py
+│   │   └── task.py                  # queue payload schema
+│
+│   ├── queue/                       # Redis abstraction
+│   │   ├── client.py
+│   │   ├── producer.py
+│   │   ├── consumer.py
 │   │   └── dedup.py
 │
-│   ├── crawler/                 # 데이터 수집
+│   ├── crawler/                     # 데이터 수집
 │   │   ├── base.py
-│   │   ├── reddit.py
-│   │   ├── x.py
-│   │   └── fallback.py          # playwright / crawl4ai
+│   │   ├── registry.py              # crawler 선택 로직
+│   │   ├── sources/
+│   │   │   ├── reddit.py
+│   │   │   ├── x.py
+│   │   │   └── web.py               # playwright/crawl4ai
+│   │   └── fetcher.py               # http / retry / rate limit
 │
-│   ├── pipeline/                # 데이터 처리 (핵심 레이어)
-│   │   ├── parser.py
-│   │   ├── cleaner.py
-│   │   ├── normalizer.py
-│   │   └── validator.py         # 내부 품질 체크
+│   ├── pipeline/                    # 실행 엔진
+│   │   ├── engine.py                # pipeline orchestration
+│   │   ├── schema.py                # 데이터 흐름 정의
+│   │   └── stages/
+│   │       ├── parse.py
+│   │       ├── clean.py
+│   │       ├── normalize.py
+│   │       └── validate.py
 │
-│   ├── keyword/                 # 수익 엔진
-│   │   ├── extractor.py
-│   │   ├── expander.py
+│   ├── keyword/                     # 수익 핵심
+│   │   ├── orchestrator.py
+│   │   ├── strategies/
+│   │   │   ├── extract.py
+│   │   │   ├── expand.py
+│   │   │   ├── trending.py
+│   │   │   └── semantic.py
 │   │   ├── scorer.py
 │   │   └── generator.py
 │
-│   ├── storage/                 # 저장 레이어
-│   │   ├── redis_cache.py
-│   │   ├── sqlite.py
-│   │   └── parquet.py
+│   ├── storage/                     # 저장 추상화
+│   │   ├── repository.py            # 공통 인터페이스
+│   │   └── backends/
+│   │       ├── redis.py
+│   │       ├── sqlite.py
+│   │       ├── parquet.py
+│   │       └── s3.py                # 필수 (data-universe 대비)
 │
-│   ├── services/                # 실행 단위 (중요)
-│   │   ├── scheduler.py         # 키워드 생성 → queue push
-│   │   ├── crawler_worker.py    # queue → 크롤링
-│   │   └── ingestion_worker.py  # pipeline → 저장
+│   ├── miner/                       # bittensor 연결
+│   │   ├── client.py
+│   │   ├── protocol.py              # 요청/응답 정의
+│   │   └── adapter.py               # 내부 → miner 포맷 변환
 │
-│   ├── api/                     # validator 대응
+│   ├── services/                    # orchestration layer
+│   │   ├── scheduler.py             # keyword → queue
+│   │   ├── crawl_service.py         # queue → crawler
+│   │   └── ingest_service.py        # pipeline → storage
+│
+│   ├── api/                         # validator 대응
 │   │   ├── server.py
-│   │   └── routes.py
+│   │   ├── routes.py
+│   │   └── schemas.py
 │
-│   └── miner/                   # data-universe bridge
-│       └── client.py            # API 호출 wrapper
+│   └── observability/               # 운영 핵심
+│       ├── metrics.py
+│       ├── tracing.py
+│       └── logging.py
 │
-├── scripts/                     # 실행 스크립트
+├── workers/                         # 실행 단위 분리 (중요)
+│   ├── scheduler.py
+│   ├── crawler.py
+│   └── ingestion.py
+│
+├── scripts/
 │   ├── run_scheduler.py
-│   ├── run_worker.py
-│   ├── run_api.py
-│   └── run_all.sh
+│   ├── run_crawler.py
+│   ├── run_ingestion.py
+│   └── run_api.py
 │
-├── infra/                       # 인프라 설정
+├── infra/
 │   ├── redis/
 │   │   └── redis.conf
 │   └── env/
 │       └── .env
 │
 ├── docker/
+│   ├── scheduler.Dockerfile
 │   ├── crawler.Dockerfile
-│   ├── worker.Dockerfile
+│   ├── ingestion.Dockerfile
 │   ├── api.Dockerfile
 │   └── miner.Dockerfile
 │
-├── data-universe/               # (git clone) ← 그대로 유지
+├── data-universe/                   # 그대로 유지
 │
 ├── docker-compose.yml
 ├── requirements.txt
